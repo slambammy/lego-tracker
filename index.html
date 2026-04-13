@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🧱 Lego Collection Tracker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f0e8;
+      color: #222;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #e3000b;
+      color: white;
+      padding: 20px 30px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { font-size: 1.8rem; letter-spacing: 1px; }
+    header span { font-size: 2rem; }
+
+    .stats-bar {
+      background: #ffcb05;
+      display: flex;
+      gap: 30px;
+      padding: 12px 30px;
+      flex-wrap: wrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .stat { display: flex; flex-direction: column; align-items: center; }
+    .stat-value { font-size: 1.5rem; font-weight: bold; color: #222; }
+    .stat-label { font-size: 0.75rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .main { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+
+    /* Config Banner */
+    .config-banner {
+      background: #fff8e1;
+      border: 2px solid #ffcb05;
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 22px;
+    }
+    .config-banner h3 { font-size: 1rem; margin-bottom: 10px; color: #333; }
+    .config-banner p  { font-size: 0.83rem; color: #666; margin-bottom: 12px; line-height: 1.5; }
+    .config-banner p a { color: #2a7ae2; }
+    .config-fields { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .config-fields label { font-size: 0.8rem; font-weight: 600; color: #555; display: block; margin-bottom: 4px; }
+    .config-fields input {
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      width: 300px;
+      outline: none;
+    }
+    .config-fields input:focus { border-color: #e3000b; }
+    .config-status { margin-top: 10px; font-size: 0.85rem; font-weight: 600; min-height: 20px; }
+    .config-status.ok      { color: #155724; }
+    .config-status.error   { color: #cc3333; }
+    .config-status.loading { color: #2a7ae2; }
+
+    .controls {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .controls input {
+      padding: 10px 14px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      background: white;
+      outline: none;
+      flex: 1;
+      min-width: 180px;
+    }
+    .controls input:focus { border-color: #e3000b; }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+    .btn:hover    { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active   { transform: translateY(0); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-primary   { background: #e3000b; color: white; }
+    .btn-secondary { background: #ffcb05; color: #222; }
+    .btn-lookup    { background: #2a7ae2; color: white; padding: 9px 14px; font-size: 0.88rem; white-space: nowrap; }
+    .btn-danger    { background: #cc3333; color: white; padding: 6px 12px; font-size: 0.82rem; }
+    .btn-edit      { background: #4a90d9; color: white; padding: 6px 12px; font-size: 0.82rem; }
+    .btn-save      { background: #28a745; color: white; }
+
+    .filter-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      align-items: center;
+    }
+    .filter-row select, .filter-row input {
+      padding: 8px 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      background: white;
+      outline: none;
+    }
+    .filter-row select:focus { border-color: #e3000b; }
+    .result-count { font-size: 0.88rem; color: #888; margin-left: auto; }
+
+    /* Spinner */
+    .spinner-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.6);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .spinner-overlay.active { display: flex; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 5px solid #ffcb05;
+      border-top-color: #e3000b;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner-label { font-weight: 600; color: #444; font-size: 0.95rem; }
+
+    /* Grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      border-top: 4px solid #e3000b;
+      transition: transform 0.15s, box-shadow 0.15s;
+      display: flex;
+      flex-direction: column;
+    }
+    .card:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.13); }
+    .card-img {
+      width: 100%; height: 160px;
+      object-fit: contain;
+      background: #f9f9f9;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .card-img-placeholder {
+      width: 100%; height: 100px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.5rem;
+      background: #f9f9f9;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+    .card-title  { font-size: 1rem; font-weight: 700; color: #222; line-height: 1.3; }
+    .card-set-num { font-size: 0.8rem; color: #888; font-weight: 500; white-space: nowrap; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .badge-complete   { background: #d4edda; color: #155724; }
+    .badge-incomplete { background: #fff3cd; color: #856404; }
+    .badge-wishlist   { background: #d1ecf1; color: #0c5460; }
+    .badge-displayed  { background: #e2d9f3; color: #4a235a; }
+    .card-theme { font-size: 0.82rem; color: #666; }
+    .card-meta  { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; color: #555; }
+    .card-notes { font-size: 0.82rem; color: #777; font-style: italic; border-top: 1px solid #f0f0f0; padding-top: 8px; }
+    .card-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #aaa; grid-column: 1/-1; }
+    .empty-state .icon { font-size: 3.5rem; margin-bottom: 12px; }
+    .empty-state p { font-size: 1.1rem; }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal {
+      background: white;
+      border-radius: 14px;
+      padding: 30px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      position: relative;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h2 { margin-bottom: 16px; font-size: 1.3rem; color: #e3000b; }
+    .lookup-row {
+      display: flex; gap: 8px; align-items: center;
+      background: #f0f7ff;
+      border: 2px solid #2a7ae2;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 6px;
+    }
+    .lookup-row input {
+      flex: 1; padding: 8px 10px;
+      border: 2px solid #ddd;
+      border-radius: 7px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .lookup-row input:focus { border-color: #2a7ae2; }
+    .lookup-status { font-size: 0.82rem; margin-bottom: 10px; min-height: 18px; }
+    .lookup-status.loading { color: #2a7ae2; }
+    .lookup-status.success { color: #155724; }
+    .lookup-status.error   { color: #cc3333; }
+    .set-image-preview {
+      display: none;
+      width: 100%; max-height: 160px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      background: #fafafa;
+      margin-bottom: 14px;
+    }
+    .form-group { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.82rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 9px 12px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border 0.2s;
+      font-family: inherit;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #e3000b; }
+    .form-group input.autofilled { border-color: #28a745; background: #f0fff4; }
+    .form-row { display: flex; gap: 12px; }
+    .form-row .form-group { flex: 1; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    .close-btn {
+      position: absolute; top: 14px; right: 16px;
+      background: none; border: none;
+      font-size: 1.4rem; cursor: pointer; color: #888;
+    }
+    .close-btn:hover { color: #333; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 24px; right: 24px;
+      background: #333;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      z-index: 300;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #28a745; }
+    .toast.error   { background: #cc3333; }
+
+    @media (max-width: 600px) {
+      header h1 { font-size: 1.3rem; }
+      .stats-bar { gap: 16px; }
+      .form-row  { flex-direction: column; }
+      .config-fields input { width: 100%; }
+      .config-fields { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span>🧱</span>
+  <h1>Lego Collection Tracker</h1>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><span class="stat-value" id="stat-total">0</span><span class="stat-label">Total Sets</span></div>
+  <div class="stat"><span class="stat-value" id="stat-pieces">0</span><span class="stat-label">Total Pieces</span></div>
+  <div class="stat"><span class="stat-value" id="stat-value">$0</span><span class="stat-label">Est. Value</span></div>
+  <div class="stat"><span class="stat-value" id="stat-complete">0</span><span class="stat-label">Complete</span></div>
+  <div class="stat"><span class="stat-value" id="stat-wishlist">0</span><span class="stat-label">Wishlist</span></div>
+</div>
+
+<div class="main">
+
+  <!-- Supabase Config Banner -->
+  <div class="config-banner" id="config-banner">
+    <h3>🔧 Supabase Setup</h3>
+    <p>
+      Enter your free <a href="https://supabase.com" target="_blank">Supabase</a> project URL and anon key to sync your collection across all devices.
+      Find these under <strong>Project Settings → API</strong> in your Supabase dashboard.
+    </p>
+    <div class="config-fields">
+      <div>
+        <label>Supabase Project URL</label>
+        <input type="text" id="sb-url" placeholder="https://xxxxxxxxxxxx.supabase.co" />
+      </div>
+      <div>
+        <label>Supabase Anon Key</label>
+        <input type="text" id="sb-key" placeholder="eyJhbGciOiJIUzI1NiIs..." />
+      </div>
+      <button class="btn btn-save" onclick="saveSupabaseConfig()">💾 Connect</button>
+    </div>
+    <div class="config-status" id="config-status"></div>
+  </div>
+
+  <!-- API Key Banner for Rebrickable -->
+  <div style="background:#f0f7ff;border:2px solid #2a7ae2;border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <span style="font-size:1.3rem">🔑</span>
+    <p style="font-size:0.88rem;color:#555;flex:1;min-width:200px;">
+      Enter your free <a href="https://rebrickable.com/api/" target="_blank" style="color:#2a7ae2;">Rebrickable API key</a> to enable auto-lookup of set details.
+    </p>
+    <input type="text" id="api-key-input" placeholder="Paste Rebrickable API key..."
+      style="padding:8px 12px;border:2px solid #ddd;border-radius:8px;font-size:0.88rem;width:240px;outline:none;" />
+    <button class="btn btn-lookup" onclick="saveApiKey()">Save Key</button>
+    <span id="api-key-status" style="font-size:0.82rem;font-weight:600;color:#856404;">No key saved</span>
+  </div>
+
+  <div class="controls">
+    <input type="text" id="search-input" placeholder="🔍  Search sets..." />
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
+    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
+    <label class="btn btn-secondary" style="cursor:pointer;">
+      ⬆ Import JSON <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+    </label>
+  </div>
+
+  <div class="filter-row">
+    <select id="filter-status" onchange="renderCards()">
+      <option value="">All Statuses</option>
+      <option value="Complete">Complete</option>
+      <option value="Incomplete">Incomplete</option>
+      <option value="Wishlist">Wishlist</option>
+      <option value="Displayed">Displayed</option>
+    </select>
+    <select id="filter-theme" onchange="renderCards()">
+      <option value="">All Themes</option>
+    </select>
+    <select id="sort-by" onchange="renderCards()">
+      <option value="name">Sort: Name</option>
+      <option value="pieces">Sort: Pieces</option>
+      <option value="year">Sort: Year</option>
+      <option value="value">Sort: Value</option>
+      <option value="set_number">Sort: Set #</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="grid" id="cards-grid"></div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="close-btn" onclick="closeModal()">✕</button>
+    <h2 id="modal-title">Add New Set</h2>
+
+    <div class="lookup-row">
+      <input type="text" id="lookup-input" placeholder="Enter set number to auto-fill (e.g. 75192)..." />
+      <button class="btn btn-lookup" id="lookup-btn" onclick="lookupSet()">🔍 Look Up Set</button>
+    </div>
+    <div class="lookup-status" id="lookup-status"></div>
+
+    <img id="set-img-preview" class="set-image-preview" alt="Set image" />
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Set Name *</label>
+        <input type="text" id="f-name" placeholder="e.g. Millennium Falcon" />
+      </div>
+      <div class="form-group">
+        <label>Set Number</label>
+        <input type="text" id="f-set-number" placeholder="e.g. 75192" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Theme</label>
+        <input type="text" id="f-theme" placeholder="e.g. Star Wars" list="theme-suggestions" />
+        <datalist id="theme-suggestions"></datalist>
+      </div>
+      <div class="form-group">
+        <label>Year</label>
+        <input type="number" id="f-year" placeholder="e.g. 2023" min="1949" max="2099" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Piece Count</label>
+        <input type="number" id="f-pieces" placeholder="e.g. 7541" min="0" />
+      </div>
+      <div class="form-group">
+        <label>Est. Value ($)</label>
+        <input type="number" id="f-value" placeholder="e.g. 849.99" min="0" step="0.01" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="Complete">Complete</option>
+          <option value="Incomplete">Incomplete</option>
+          <option value="Wishlist">Wishlist</option>
+          <option value="Displayed">Displayed</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" id="f-quantity" value="1" min="1" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea id="f-notes" rows="2" placeholder="Any extra details..."></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSet()">Save Set</button>
+    </div>
+  </div>
+</div>
+
+<!-- Spinner -->
+<div class="spinner-overlay" id="spinner">
+  <div class="spinner"></div>
+  <div class="spinner-label" id="spinner-label">Loading...</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────────────────────
+  let collection = [];
+  let editingId  = null;
+  let pendingImageUrl = null;
+  const themeCache = {};
+
+  // ── Supabase helpers ──────────────────────────────────────────────────────
+
+  function getSbConfig() {
+    return {
+      url: localStorage.getItem('sb_url') || '',
+      key: localStorage.getItem('sb_key') || ''
+    };
+  }
+
+  function sbHeaders() {
+    const { key } = getSbConfig();
+    return {
+      'Content-Type': 'application/json',
+      'apikey': key,
+      'Authorization': `Bearer ${key}`
+    };
+  }
+
+  function sbBase() {
+    return getSbConfig().url + '/rest/v1/lego_sets';
+  }
+
+  function isConfigured() {
+    const { url, key } = getSbConfig();
+    return url.startsWith('https://') && key.length > 20;
+  }
+
+  async function saveSupabaseConfig() {
+    const url = document.getElementById('sb-url').value.trim().replace(/\/$/, '');
+    const key = document.getElementById('sb-key').value.trim();
+    const statusEl = document.getElementById('config-status');
+
+    if (!url || !key) {
+      statusEl.textContent = '⚠️ Please fill in both fields.';
+      statusEl.className = 'config-status error';
+      return;
+    }
+
+    statusEl.textContent = '🔄 Testing connection...';
+    statusEl.className = 'config-status loading';
+
+    try {
+      const res = await fetch(`${url}/rest/v1/lego_sets?limit=1`, {
+        headers: {
+          'apikey': key,
+          'Authorization': `Bearer ${key}`
+        }
+      });
+
+      if (res.status === 401) throw new Error('Invalid API key.');
+      if (res.status === 404) throw new Error('Table "lego_sets" not found. Did you run the SQL setup?');
+      if (!res.ok) throw new Error(`Error ${res.status}. Check your URL and key.`);
+
+      localStorage.setItem('sb_url', url);
+      localStorage.setItem('sb_key', key);
+
+      statusEl.textContent = '✅ Connected successfully!';
+      statusEl.className = 'config-status ok';
+
+      loadCollection();
+    } catch (err) {
+      statusEl.textContent = '❌ ' + err.message;
+      statusEl.className = 'config-status error';
+    }
+  }
+
+  function updateConfigBanner() {
+    if (!isConfigured()) return;
+    const { url } = getSbConfig();
+    const statusEl = document.getElementById('config-status');
+    document.getElementById('sb-url').value = url;
+    document.getElementById('sb-key').value = '••••••••••••••••••••';
+    statusEl.textContent = '✅ Connected to Supabase';
+    statusEl.className = 'config-status ok';
+  }
+
+  // ── Supabase CRUD ─────────────────────────────────────────────────────────
+
+  async function loadCollection() {
+    if (!isConfigured()) {
+      renderCards();
+      return;
+    }
+    showSpinner('Loading your collection...');
+    try {
+      const res = await fetch(`${sbBase()}?order=created_at.asc`, { headers: sbHeaders() });
+      if (!res.ok) throw new Error(await res.text());
+      collection = await res.json();
+      updateThemeFilter();
+      updateStats();
+      renderCards();
+    } catch (err) {
+      showToast('❌ Failed to load: ' + err.message, 'error');
+    }
+    hideSpinner();
+  }
+
+  async function dbInsert(setData) {
+    const res = await fetch(sbBase(), {
+      method: 'POST',
+      headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify(setData)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const rows = await res.json();
+    return rows[0];
+  }
+
+  async function dbUpdate(id, setData) {
+    const res = await fetch(`${sbBase()}?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { ...sbHeaders(), 'Prefer': 'return=representation' },
+      body: JSON.stringify(setData)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    const rows = await res.json();
+    return rows[0];
+  }
+
+  async function dbDelete(id) {
+    const res = await fetch(`${sbBase()}?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: sbHeaders()
+    });
+    if (!res.ok) throw new Error(await res.text());
+  }
+
+  // ── Rebrickable Lookup ────────────────────────────────────────────────────
+
+  function getApiKey() { return localStorage.getItem('rebrickable_api_key') || ''; }
+
+  function saveApiKey() {
+    const key = document.getElementById('api-key-input').value.trim();
+    if (!key) { alert('Please paste your API key first.'); return; }
+    localStorage.setItem('rebrickable_api_key', key);
+    updateApiKeyStatus();
+    showToast('✅ Rebrickable API key saved!', 'success');
+  }
+
+  function updateApiKeyStatus() {
+    const key = getApiKey();
+    const statusEl = document.getElementById('api-key-status');
+    const inputEl  = document.getElementById('api-key-input');
+    if (key) {
+      statusEl.textContent = '✅ Key saved';
+      statusEl.style.color = '#155724';
+      inputEl.value = key.slice(0, 6) + '••••••••••••••••';
+    } else {
+      statusEl.textContent = 'No key saved';
+      statusEl.style.color = '#856404';
+    }
+  }
+
+  async function getThemeName(themeId) {
+    if (!themeId) return '';
+    if (themeCache[themeId]) return themeCache[themeId];
+    try {
+      const res = await fetch(`https://rebrickable.com/api/v3/lego/themes/${themeId}/`, {
+        headers: { 'Authorization': `key ${getApiKey()}` }
+      });
+      if (!res.ok) return '';
+      const data = await res.json();
+      themeCache[themeId] = data.name || '';
+      return themeCache[themeId];
+    } catch { return ''; }
+  }
+
+  async function lookupSet() {
+    const key = getApiKey();
+    if (!key) { setLookupStatus('error', '⚠️ Save your Rebrickable API key first.'); return; }
+
+    let setNum = document.getElementById('lookup-input').value.trim();
+    if (!setNum) { setLookupStatus('error', '⚠️ Enter a set number first.'); return; }
+    if (!setNum.includes('-')) setNum += '-1';
+
+    const btn = document.getElementById('lookup-btn');
+    btn.disabled = true;
+    btn.textContent = '⏳ Looking up...';
+    setLookupStatus('loading', '🔍 Searching Rebrickable...');
+
+    try {
+      const res = await fetch(`https://rebrickable.com/api/v3/lego/sets/${setNum}/`, {
+        headers: { 'Authorization': `key ${key}` }
+      });
+
+      if (res.status === 404) {
+        setLookupStatus('error', `❌ Set "${setNum}" not found. Check the number and try again.`);
+        btn.disabled = false; btn.textContent = '🔍 Look Up Set';
+        return;
+      }
+      if (!res.ok) {
+        setLookupStatus('error', `❌ API error ${res.status}. Check your API key.`);
+        btn.disabled = false; btn.textContent = '🔍 Look Up Set';
+        return;
+      }
+
+      const data = await res.json();
+      const themeName = await getThemeName(data.theme_id);
+
+      setField('f-name',       data.name || '');
+      setField('f-set-number', (data.set_num || setNum).replace(/-1$/, ''));
+      setField('f-theme',      themeName);
+      setField('f-year',       data.year || '');
+      setField('f-pieces',     data.num_parts || '');
+
+      if (data.set_img_url) {
+        pendingImageUrl = data.set_img_url;
+        const img = document.getElementById('set-img-preview');
+        img.src = data.set_img_url;
+        img.style.display = 'block';
+      }
+
+      setLookupStatus('success', `✅ Found: "${data.name}" (${data.year}) — ${(data.num_parts || 0).toLocaleString()} pieces`);
+    } catch {
+      setLookupStatus('error', '❌ Network error. Check your connection.');
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🔍 Look Up Set';
+  }
+
+  function setField(id, value) {
+    const el = document.getElementById(id);
+    el.value = value;
+    el.classList.toggle('autofilled', !!value);
+  }
+
+  function setLookupStatus(type, msg) {
+    const el = document.getElementById('lookup-status');
+    el.textContent = msg;
+    el.className = 'lookup-status ' + type;
+  }
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+
+  function updateStats() {
+    const total    = collection.length;
+    const pieces   = collection.reduce((s, x) => s + (parseInt(x.pieces)   || 0) * (parseInt(x.quantity) || 1), 0);
+    const value    = collection.reduce((s, x) => s + (parseFloat(x.value)  || 0) * (parseInt(x.quantity) || 1), 0);
+    const complete = collection.filter(x => x.status === 'Complete' || x.status === 'Displayed').length;
+    const wishlist = collection.filter(x => x.status === 'Wishlist').length;
+
+    document.getElementById('stat-total').textContent    = total;
+    document.getElementById('stat-pieces').textContent   = pieces.toLocaleString();
+    document.getElementById('stat-value').textContent    = '$' + value.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('stat-complete').textContent = complete;
+    document.getElementById('stat-wishlist').textContent = wishlist;
+  }
+
+  // ── Theme filter ──────────────────────────────────────────────────────────
+
+  function updateThemeFilter() {
+    const themes = [...new Set(collection.map(x => x.theme).filter(Boolean))].sort();
+    const sel = document.getElementById('filter-theme');
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All Themes</option>' +
+      themes.map(t => `<option value="${t}" ${t === current ? 'selected' : ''}>${escHtml(t)}</option>`).join('');
+    document.getElementById('theme-suggestions').innerHTML =
+      themes.map(t => `<option value="${escHtml(t)}">`).join('');
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  function renderCards() {
+    const search       = document.getElementById('search-input').value.toLowerCase();
+    const statusFilter = document.getElementById('filter-status').value;
+    const themeFilter  = document.getElementById('filter-theme').value;
+    const sortBy       = document.getElementById('sort-by').value;
+
+    let filtered = collection.filter(s => {
+      const matchSearch = !search ||
+        (s.name || '').toLowerCase().includes(search) ||
+        (s.set_number || '').toLowerCase().includes(search) ||
+        (s.theme || '').toLowerCase().includes(search);
+      return matchSearch &&
+        (!statusFilter || s.status === statusFilter) &&
+        (!themeFilter  || s.theme  === themeFilter);
+    });
+
+    filtered.sort((a, b) => {
+      if (sortBy === 'pieces')     return (parseInt(b.pieces)  || 0) - (parseInt(a.pieces)  || 0);
+      if (sortBy === 'year')       return (parseInt(b.year)    || 0) - (parseInt(a.year)    || 0);
+      if (sortBy === 'value')      return (parseFloat(b.value) || 0) - (parseFloat(a.value) || 0);
+      if (sortBy === 'set_number') return (a.set_number || '').localeCompare(b.set_number || '');
+      return (a.name || '').localeCompare(b.name || '');
+    });
+
+    document.getElementById('result-count').textContent =
+      filtered.length + ' of ' + collection.length + ' sets';
+
+    const grid = document.getElementById('cards-grid');
+
+    if (!isConfigured() && collection.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><p>Connect to Supabase above to get started!</p></div>`;
+      return;
+    }
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🧱</div><p>${collection.length === 0 ? "No sets yet — add your first one!" : "No sets match your filters."}</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = filtered.map(s => `
+      <div class="card">
+        ${s.image_url
+          ? `<img class="card-img" src="${escHtml(s.image_url)}" alt="${escHtml(s.name || '')}" loading="lazy"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+          : ''}
+        <div class="card-img-placeholder" style="${s.image_url ? 'display:none' : ''}">🧱</div>
+        <div class="card-body">
+          <div class="card-header">
+            <div class="card-title">${escHtml(s.name || '')}</div>
+            ${s.set_number ? `<span class="card-set-num">#${escHtml(s.set_number)}</span>` : ''}
+          </div>
+          <div>
+            <span class="badge ${badgeClass(s.status)}">${escHtml(s.status || '')}</span>
+            ${(s.quantity || 1) > 1 ? `<span class="badge" style="background:#eee;color:#555;margin-left:4px">×${s.quantity}</span>` : ''}
+          </div>
+          ${s.theme ? `<div class="card-theme">🏷 ${escHtml(s.theme)}</div>` : ''}
+          <div class="card-meta">
+            ${s.pieces ? `<span>🔩 ${parseInt(s.pieces).toLocaleString()} pcs</span>` : ''}
+            ${s.year   ? `<span>📅 ${s.year}</span>` : ''}
+            ${s.value  ? `<span>💰 $${parseFloat(s.value).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</span>` : ''}
+          </div>
+          ${s.notes ? `<div class="card-notes">${escHtml(s.notes)}</div>` : ''}
+          <div class="card-actions">
+            <button class="btn btn-edit"   onclick="openEditModal('${s.id}')">✏ Edit</button>
+            <button class="btn btn-danger" onclick="deleteSet('${s.id}')">🗑 Delete</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function badgeClass(status) {
+    return { Complete:'badge-complete', Incomplete:'badge-incomplete',
+             Wishlist:'badge-wishlist', Displayed:'badge-displayed' }[status] || 'badge-incomplete';
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+
+  function openAddModal() {
+    if (!isConfigured()) { showToast('⚠️ Connect to Supabase first!', 'error'); return; }
+    editingId = null;
+    pendingImageUrl = null;
+    document.getElementById('modal-title').textContent = 'Add New Set';
+    clearForm();
+    document.getElementById('modal-overlay').classList.add('active');
+  }
+
+  function openEditModal(id) {
+    const s = collection.find(x => x.id === id);
+    if (!s) return;
+    editingId = id;
+    pendingImageUrl = s.image_url || null;
+    document.getElementById('modal-title').textContent = 'Edit Set';
+    document.getElementById('lookup-input').value = s.set_number || '';
+    setField('f-name',       s.name       || '');
+    setField('f-set-number', s.set_number || '');
+    setField('f-theme',      s.theme      || '');
+    setField('f-year',       s.year       || '');
+    setField('f-pieces',     s.pieces     || '');
+    document.getElementById('f-value').value    = s.value    || '';
+    document.getElementById('f-status').value   = s.status   || 'Complete';
+    document.getElementById('f-quantity').value = s.quantity || 1;
+    document.getElementById('f-notes').value    = s.notes    || '';
+    const img = document.getElementById('set-img-preview');
+    if (s.image_url) { img.src = s.image_url; img.style.display = 'block'; }
+    else { img.style.display = 'none'; }
+    setLookupStatus('', '');
+    document.getElementById('modal-overlay').classList.add('active');
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('active');
+  }
+
+  function clearForm() {
+    document.getElementById('lookup-input').value = '';
+    ['f-name','f-set-number','f-theme','f-year','f-pieces','f-value','f-notes'].forEach(id => {
+      const el = document.getElementById(id);
+      el.value = '';
+      el.classList.remove('autofilled');
+    });
+    document.getElementById('f-status').value   = 'Complete';
+    document.getElementById('f-quantity').value = 1;
+    const img = document.getElementById('set-img-preview');
+    img.style.display = 'none'; img.src = '';
+    setLookupStatus('', '');
+  }
+
+  // ── Save / Delete ─────────────────────────────────────────────────────────
+
+  async function saveSet() {
+    const name = document.getElementById('f-name').value.trim();
+    if (!name) { alert('Set name is required.'); return; }
+
+    const setData = {
+      name,
+      set_number: document.getElementById('f-set-number').value.trim() || null,
+      theme:      document.getElementById('f-theme').value.trim()      || null,
+      year:       document.getElementById('f-year').value.trim()       || null,
+      pieces:     document.getElementById('f-pieces').value.trim()     || null,
+      value:      document.getElementById('f-value').value.trim()      || null,
+      status:     document.getElementById('f-status').value,
+      quantity:   parseInt(document.getElementById('f-quantity').value) || 1,
+      notes:      document.getElementById('f-notes').value.trim()      || null,
+      image_url:  pendingImageUrl || null,
+    };
+
+    showSpinner(editingId ? 'Updating set...' : 'Saving set...');
+    try {
+      if (editingId) {
+        const updated = await dbUpdate(editingId, setData);
+        const idx = collection.findIndex(x => x.id === editingId);
+        if (idx !== -1) collection[idx] = updated;
+        showToast('✅ Set updated!', 'success');
+      } else {
+        const created = await dbInsert(setData);
+        collection.push(created);
+        showToast('✅ Set added!', 'success');
+      }
+      closeModal();
+      updateThemeFilter();
+      updateStats();
+      renderCards();
+    } catch (err) {
+      showToast('❌ Save failed: ' + err.message, 'error');
+    }
+    hideSpinner();
+  }
+
+  async function deleteSet(id) {
+    if (!confirm('Delete this set from your collection?')) return;
+    showSpinner('Deleting...');
+    try {
+      await dbDelete(id);
+      collection = collection.filter(x => x.id !== id);
+      updateThemeFilter();
+      updateStats();
+      renderCards();
+      showToast('🗑 Set deleted.', 'success');
+    } catch (err) {
+      showToast('❌ Delete failed: ' + err.message, 'error');
+    }
+    hideSpinner();
+  }
+
+  // ── Import / Export ───────────────────────────────────────────────────────
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(collection, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'lego_collection.json';
+    a.click();
+  }
+
+  async function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async e => {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (!Array.isArray(data)) throw new Error('Not a valid array.');
+        if (!confirm(`Import ${data.length} sets into Supabase? Duplicates will be added as new rows.`)) return;
+
+        showSpinner(`Importing ${data.length} sets...`);
+        let imported = 0;
+        for (const s of data) {
+          const { id, created_at, ...rest } = s;
+          try { await dbInsert(rest); imported++; } catch {}
+        }
+        await loadCollection();
+        showToast(`✅ Imported ${imported} sets!`, 'success');
+      } catch (err) {
+        showToast('❌ Import failed: ' + err.message, 'error');
+      }
+      hideSpinner();
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+  }
+
+  // ── UI Helpers ────────────────────────────────────────────────────────────
+
+  function showSpinner(label = 'Loading...') {
+    document.getElementById('spinner-label').textContent = label;
+    document.getElementById('spinner').classList.add('active');
+  }
+
+  function hideSpinner() {
+    document.getElementById('spinner').classList.remove('active');
+  }
+
+  let toastTimer;
+  function showToast(msg, type = '') {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast show ' + type;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
+  }
+
+  // ── Event Listeners ───────────────────────────────────────────────────────
+
+  document.getElementById('search-input').addEventListener('input', renderCards);
+
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) closeModal();
+  });
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  document.getElementById('lookup-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') lookupSet();
+  });
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+
+  updateConfigBanner();
+  updateApiKeyStatus();
+  updateThemeFilter();
+  updateStats();
+  renderCards();
+
+  if (isConfigured()) loadCollection();
+</script>
+</body>
+</html>
+Here's a summary of everything that changed:
