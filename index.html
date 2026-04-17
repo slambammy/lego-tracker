@@ -194,6 +194,7 @@
     .badge-wishlist   { background: #d1ecf1; color: #0c5460; }
     .badge-displayed  { background: #e2d9f3; color: #4a235a; }
     .badge-newinbox   { background: #fde8f0; color: #7d1a3e; }
+    .badge-storage    { background: #e8f4e8; color: #2d5a2d; }
     .card-theme { font-size: 0.82rem; color: #666; }
     .card-meta  { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; color: #555; }
     .card-notes { font-size: 0.82rem; color: #777; font-style: italic; border-top: 1px solid #f0f0f0; padding-top: 8px; }
@@ -278,16 +279,6 @@
     }
     .close-btn:hover { color: #333; }
 
-    /* Bottom Banners */
-    .bottom-banners {
-      max-width: 1100px;
-      margin: 30px auto 40px;
-      padding: 0 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
     /* Toast */
     .toast {
       position: fixed;
@@ -335,43 +326,6 @@
 
 <div class="main">
 
-  <div class="controls">
-    <input type="text" id="search-input" placeholder="🔍  Search sets..." />
-    <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
-    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
-    <label class="btn btn-secondary" style="cursor:pointer;">
-      ⬆ Import JSON <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
-    </label>
-  </div>
-
-  <div class="filter-row">
-    <select id="filter-status" onchange="renderCards()">
-      <option value="">All Statuses</option>
-      <option value="Complete">Complete</option>
-      <option value="Incomplete">Incomplete</option>
-      <option value="Wishlist">Wishlist</option>
-      <option value="Displayed">Displayed</option>
-      <option value="New In Box">New In Box</option>
-    </select>
-    <select id="filter-theme" onchange="renderCards()">
-      <option value="">All Themes</option>
-    </select>
-    <select id="sort-by" onchange="renderCards()">
-      <option value="name">Sort: Name</option>
-      <option value="pieces">Sort: Pieces</option>
-      <option value="year">Sort: Year</option>
-      <option value="value">Sort: Value</option>
-      <option value="set_number">Sort: Set #</option>
-    </select>
-    <span class="result-count" id="result-count"></span>
-  </div>
-
-  <div class="grid" id="cards-grid"></div>
-</div>
-
-<!-- Bottom Banners -->
-<div class="bottom-banners">
-
   <!-- Supabase Config Banner -->
   <div class="config-banner" id="config-banner">
     <h3>🔧 Supabase Setup</h3>
@@ -394,7 +348,7 @@
   </div>
 
   <!-- API Key Banner for Rebrickable -->
-  <div style="background:#f0f7ff;border:2px solid #2a7ae2;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <div style="background:#f0f7ff;border:2px solid #2a7ae2;border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <span style="font-size:1.3rem">🔑</span>
     <p style="font-size:0.88rem;color:#555;flex:1;min-width:200px;">
       Enter your free <a href="https://rebrickable.com/api/" target="_blank" style="color:#2a7ae2;">Rebrickable API key</a> to enable auto-lookup of set details.
@@ -405,6 +359,39 @@
     <span id="api-key-status" style="font-size:0.82rem;font-weight:600;color:#856404;">No key saved</span>
   </div>
 
+  <div class="controls">
+    <input type="text" id="search-input" placeholder="🔍  Search sets..." />
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
+    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
+    <label class="btn btn-secondary" style="cursor:pointer;">
+      ⬆ Import JSON <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+    </label>
+  </div>
+
+  <div class="filter-row">
+    <!-- CHANGED: renamed from "All Statuses" to "Search" and updated options -->
+    <select id="filter-status" onchange="renderCards()">
+      <option value="">Search</option>
+      <option value="New In Box">New In Box</option>
+      <option value="Displayed">Displayed</option>
+      <option value="Storage">Storage</option>
+      <option value="Incomplete">Incomplete</option>
+      <option value="Wishlist">Wishlist</option>
+    </select>
+    <select id="filter-theme" onchange="renderCards()">
+      <option value="">All Themes</option>
+    </select>
+    <select id="sort-by" onchange="renderCards()">
+      <option value="name">Sort: Name</option>
+      <option value="pieces">Sort: Pieces</option>
+      <option value="year">Sort: Year</option>
+      <option value="value">Sort: Value</option>
+      <option value="set_number">Sort: Set #</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="grid" id="cards-grid"></div>
 </div>
 
 <!-- Add/Edit Modal -->
@@ -460,7 +447,7 @@
           <option value="Displayed">Displayed</option>
           <option value="Storage">Storage</option>
           <option value="Incomplete">Incomplete</option>
-          <option value="Wish List">Wish List</option>
+          <option value="Wishlist">Wishlist</option>
         </select>
       </div>
       <div class="form-group">
@@ -789,7 +776,7 @@
     const grid = document.getElementById('cards-grid');
 
     if (!isConfigured() && collection.length === 0) {
-      grid.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><p>Connect to Supabase below to get started!</p></div>`;
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><p>Connect to Supabase above to get started!</p></div>`;
       return;
     }
 
@@ -837,9 +824,13 @@
   }
 
   function badgeClass(status) {
-    return { Complete:'badge-complete', Incomplete:'badge-incomplete',
-             Wishlist:'badge-wishlist', Displayed:'badge-displayed',
-             'New In Box':'badge-newinbox' }[status] || 'badge-incomplete';
+    return {
+      'New In Box' : 'badge-newinbox',
+      'Displayed'  : 'badge-displayed',
+      'Storage'    : 'badge-storage',
+      'Incomplete' : 'badge-incomplete',
+      'Wishlist'   : 'badge-wishlist'
+    }[status] || 'badge-incomplete';
   }
 
   // ── Modal ─────────────────────────────────────────────────────────────────
@@ -866,7 +857,7 @@
     setField('f-year',       s.year       || '');
     setField('f-pieces',     s.pieces     || '');
     document.getElementById('f-value').value    = s.value    || '';
-    document.getElementById('f-status').value   = s.status   || 'Complete';
+    document.getElementById('f-status').value   = s.status   || 'New In Box';
     document.getElementById('f-quantity').value = s.quantity || 1;
     document.getElementById('f-notes').value    = s.notes    || '';
     const img = document.getElementById('set-img-preview');
