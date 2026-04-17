@@ -67,24 +67,26 @@
     .config-status.error   { color: #cc3333; }
     .config-status.loading { color: #2a7ae2; }
 
+    /* Controls: search left, button below */
     .controls {
       display: flex;
-      gap: 12px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 10px;
       margin-bottom: 24px;
-      flex-wrap: wrap;
-      align-items: center;
+      width: 100%;
     }
-    .controls input {
+    .controls input#search-input {
       padding: 10px 14px;
       border: 2px solid #ddd;
       border-radius: 8px;
       font-size: 0.95rem;
       background: white;
       outline: none;
-      flex: 1;
+      width: 50%;
       min-width: 180px;
     }
-    .controls input:focus { border-color: #e3000b; }
+    .controls input#search-input:focus { border-color: #e3000b; }
 
     .btn {
       padding: 10px 20px;
@@ -279,7 +281,7 @@
     }
     .close-btn:hover { color: #333; }
 
-    /* Bottom section */
+    /* Bottom banners */
     .bottom-section {
       max-width: 1100px;
       margin: 30px auto 40px;
@@ -288,8 +290,6 @@
       flex-direction: column;
       gap: 16px;
     }
-
-    /* JSON import/export banner */
     .json-banner {
       background: #f5f5f5;
       border: 2px solid #ccc;
@@ -301,12 +301,7 @@
       flex-wrap: wrap;
     }
     .json-banner span.json-icon { font-size: 1.3rem; }
-    .json-banner p {
-      font-size: 0.88rem;
-      color: #555;
-      flex: 1;
-      min-width: 200px;
-    }
+    .json-banner p { font-size: 0.88rem; color: #555; flex: 1; min-width: 200px; }
 
     /* Toast */
     .toast {
@@ -335,6 +330,7 @@
       .form-row  { flex-direction: column; }
       .config-fields input { width: 100%; }
       .config-fields { flex-direction: column; }
+      .controls input#search-input { width: 100%; }
     }
   </style>
 </head>
@@ -353,9 +349,9 @@
   <div class="stat"><span class="stat-value" id="stat-wishlist">0</span><span class="stat-label">Wishlist</span></div>
 </div>
 
-<!-- ── MAIN: only search, filters, add button, and cards ── -->
 <div class="main">
 
+  <!-- Search (half width, left) then Add Set button below it -->
   <div class="controls">
     <input type="text" id="search-input" placeholder="🔍  Search sets..." />
     <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
@@ -363,12 +359,12 @@
 
   <div class="filter-row">
     <select id="filter-status" onchange="renderCards()">
-      <option value="">Search</option>
-      <option value="New In Box">New In Box</option>
-      <option value="Displayed">Displayed</option>
-      <option value="Storage">Storage</option>
+      <option value="">All Statuses</option>
+      <option value="Complete">Complete</option>
       <option value="Incomplete">Incomplete</option>
       <option value="Wishlist">Wishlist</option>
+      <option value="Displayed">Displayed</option>
+      <option value="New In Box">New In Box</option>
     </select>
     <select id="filter-theme" onchange="renderCards()">
       <option value="">All Themes</option>
@@ -386,7 +382,7 @@
   <div class="grid" id="cards-grid"></div>
 </div>
 
-<!-- ── BOTTOM SECTION: Supabase, Rebrickable, Import, Export ── -->
+<!-- ── BOTTOM SECTION ── -->
 <div class="bottom-section">
 
   <!-- Supabase Config Banner -->
@@ -866,11 +862,12 @@
 
   function badgeClass(status) {
     return {
-      'New In Box' : 'badge-newinbox',
-      'Displayed'  : 'badge-displayed',
-      'Storage'    : 'badge-storage',
+      'Complete'   : 'badge-complete',
       'Incomplete' : 'badge-incomplete',
-      'Wishlist'   : 'badge-wishlist'
+      'Wishlist'   : 'badge-wishlist',
+      'Displayed'  : 'badge-displayed',
+      'New In Box' : 'badge-newinbox',
+      'Storage'    : 'badge-storage'
     }[status] || 'badge-incomplete';
   }
 
