@@ -193,7 +193,6 @@
     .badge-incomplete { background: #fff3cd; color: #856404; }
     .badge-wishlist   { background: #d1ecf1; color: #0c5460; }
     .badge-displayed  { background: #e2d9f3; color: #4a235a; }
-    /* ── NEW: New In Box badge ── */
     .badge-newinbox   { background: #fde8f0; color: #7d1a3e; }
     .card-theme { font-size: 0.82rem; color: #666; }
     .card-meta  { display: flex; flex-wrap: wrap; gap: 8px; font-size: 0.82rem; color: #555; }
@@ -279,6 +278,16 @@
     }
     .close-btn:hover { color: #333; }
 
+    /* Bottom Banners */
+    .bottom-banners {
+      max-width: 1100px;
+      margin: 30px auto 40px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
     /* Toast */
     .toast {
       position: fixed;
@@ -326,6 +335,43 @@
 
 <div class="main">
 
+  <div class="controls">
+    <input type="text" id="search-input" placeholder="🔍  Search sets..." />
+    <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
+    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
+    <label class="btn btn-secondary" style="cursor:pointer;">
+      ⬆ Import JSON <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
+    </label>
+  </div>
+
+  <div class="filter-row">
+    <select id="filter-status" onchange="renderCards()">
+      <option value="">All Statuses</option>
+      <option value="Complete">Complete</option>
+      <option value="Incomplete">Incomplete</option>
+      <option value="Wishlist">Wishlist</option>
+      <option value="Displayed">Displayed</option>
+      <option value="New In Box">New In Box</option>
+    </select>
+    <select id="filter-theme" onchange="renderCards()">
+      <option value="">All Themes</option>
+    </select>
+    <select id="sort-by" onchange="renderCards()">
+      <option value="name">Sort: Name</option>
+      <option value="pieces">Sort: Pieces</option>
+      <option value="year">Sort: Year</option>
+      <option value="value">Sort: Value</option>
+      <option value="set_number">Sort: Set #</option>
+    </select>
+    <span class="result-count" id="result-count"></span>
+  </div>
+
+  <div class="grid" id="cards-grid"></div>
+</div>
+
+<!-- Bottom Banners -->
+<div class="bottom-banners">
+
   <!-- Supabase Config Banner -->
   <div class="config-banner" id="config-banner">
     <h3>🔧 Supabase Setup</h3>
@@ -348,7 +394,7 @@
   </div>
 
   <!-- API Key Banner for Rebrickable -->
-  <div style="background:#f0f7ff;border:2px solid #2a7ae2;border-radius:10px;padding:14px 18px;margin-bottom:22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <div style="background:#f0f7ff;border:2px solid #2a7ae2;border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
     <span style="font-size:1.3rem">🔑</span>
     <p style="font-size:0.88rem;color:#555;flex:1;min-width:200px;">
       Enter your free <a href="https://rebrickable.com/api/" target="_blank" style="color:#2a7ae2;">Rebrickable API key</a> to enable auto-lookup of set details.
@@ -359,40 +405,6 @@
     <span id="api-key-status" style="font-size:0.82rem;font-weight:600;color:#856404;">No key saved</span>
   </div>
 
-  <div class="controls">
-    <input type="text" id="search-input" placeholder="🔍  Search sets..." />
-    <button class="btn btn-primary" onclick="openAddModal()">+ Add Set</button>
-    <button class="btn btn-secondary" onclick="exportData()">⬇ Export JSON</button>
-    <label class="btn btn-secondary" style="cursor:pointer;">
-      ⬆ Import JSON <input type="file" accept=".json" onchange="importData(event)" style="display:none"/>
-    </label>
-  </div>
-
-  <div class="filter-row">
-    <select id="filter-status" onchange="renderCards()">
-      <option value="">All Statuses</option>
-      <option value="Complete">Complete</option>
-      <option value="Incomplete">Incomplete</option>
-      <option value="Storage">Storage</option>
-      <option value="Wishlist">Wishlist</option>
-      <option value="Displayed">Displayed</option>
-      <!-- ── CHANGE 1: Added to filter dropdown ── -->
-      <option value="New In Box">New In Box</option>
-    </select>
-    <select id="filter-theme" onchange="renderCards()">
-      <option value="">All Themes</option>
-    </select>
-    <select id="sort-by" onchange="renderCards()">
-      <option value="name">Sort: Name</option>
-      <option value="pieces">Sort: Pieces</option>
-      <option value="year">Sort: Year</option>
-      <option value="value">Sort: Value</option>
-      <option value="set_number">Sort: Set #</option>
-    </select>
-    <span class="result-count" id="result-count"></span>
-  </div>
-
-  <div class="grid" id="cards-grid"></div>
 </div>
 
 <!-- Add/Edit Modal -->
@@ -443,14 +455,13 @@
     <div class="form-row">
       <div class="form-group">
         <label>Status</label>
-        <!-- ── CHANGE 3: Added "Storage" option to the form select ── -->
         <select id="f-status">
-  <option value="New In Box">New In Box</option>
-  <option value="Displayed">Displayed</option>
-  <option value="Storage">Storage</option>	
-  <option value="Incomplete">Incomplete</option>
-  <option value="Wish List">Wish List</option>
-</select>
+          <option value="New In Box">New In Box</option>
+          <option value="Displayed">Displayed</option>
+          <option value="Storage">Storage</option>
+          <option value="Incomplete">Incomplete</option>
+          <option value="Wish List">Wish List</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Quantity</label>
@@ -778,7 +789,7 @@
     const grid = document.getElementById('cards-grid');
 
     if (!isConfigured() && collection.length === 0) {
-      grid.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><p>Connect to Supabase above to get started!</p></div>`;
+      grid.innerHTML = `<div class="empty-state"><div class="icon">🔧</div><p>Connect to Supabase below to get started!</p></div>`;
       return;
     }
 
@@ -825,7 +836,6 @@
       .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // ── CHANGE 3: Added 'New In Box' → 'badge-newinbox' mapping ──
   function badgeClass(status) {
     return { Complete:'badge-complete', Incomplete:'badge-incomplete',
              Wishlist:'badge-wishlist', Displayed:'badge-displayed',
